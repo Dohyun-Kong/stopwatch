@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vintage Stopwatch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ebe4d6;
+    --ivory: #f6f1e6;
+    --ink: #24201b;
+    --ink-2: #5c5347;
+    --ink-3: #9a8f7e;
+    --line: rgba(36, 32, 27, .14);
+    --gold: #b08d57;
+    --gold-hi: #dcc394;
+    --gold-lo: #7a5f35;
+    --oxblood: #8a2e24;
+    --sage: #56684a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 16px;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    color: var(--ink);
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 50% 30%, rgba(255,252,244,.75), transparent 60%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .25 0 0 0 0 .2 0 0 0 0 .12 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .piece {
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+  }
+
+  /* 머리글 */
+  header { margin-bottom: 40px; }
+  .eyebrow {
+    font-family: "DM Mono", monospace;
+    font-size: 10px;
+    font-weight: 300;
+    letter-spacing: .42em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  h1 {
+    font-weight: 500;
+    font-size: 34px;
+    letter-spacing: .28em;
+    text-transform: uppercase;
+    margin: 10px 0 0 .28em;
+    line-height: 1;
+  }
+  .sub {
+    font-style: italic;
+    font-size: 15px;
+    color: var(--ink-2);
+    margin-top: 10px;
+  }
+
+  /* 케이스 */
+  .case {
+    position: relative;
+    width: min(300px, 80vw);
+    aspect-ratio: 1;
+    margin: 0 auto;
+    border-radius: 50%;
+    padding: 9px;
+    background: conic-gradient(from 210deg, var(--gold-lo), var(--gold-hi), var(--gold), var(--gold-lo), var(--gold-hi), var(--gold-lo));
+    box-shadow:
+      0 1px 0 rgba(255,255,255,.6) inset,
+      0 30px 50px -20px rgba(60, 42, 20, .45),
+      0 8px 16px -6px rgba(60, 42, 20, .25);
+  }
+  .pusher {
+    position: absolute; top: -12px; left: 50%;
+    width: 22px; height: 14px; transform: translateX(-50%);
+    border-radius: 3px 3px 1px 1px;
+    background: linear-gradient(90deg, var(--gold-lo), var(--gold-hi) 45%, var(--gold) 60%, var(--gold-lo));
+  }
+  .pusher::after {
+    content: ""; position: absolute; left: 50%; bottom: -5px;
+    width: 8px; height: 6px; transform: translateX(-50%);
+    background: var(--gold-lo);
+  }
+  .face {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 38%, #fcf9f1, var(--ivory) 55%, #ebe2cf);
+    box-shadow: inset 0 0 0 1px rgba(122,95,53,.5), inset 0 4px 14px rgba(70,50,20,.18);
+    overflow: hidden;
+  }
+  .face svg { width: 100%; height: 100%; display: block; }
+
+  /* 디지털 표시 */
+  .readout {
+    margin-top: 44px;
+    font-family: "DM Mono", monospace;
+    font-weight: 300;
+    font-size: clamp(40px, 12vw, 54px);
+    letter-spacing: -.01em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .readout .cs { color: var(--ink-3); font-size: .6em; margin-left: 2px; }
+  .status {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-top: 14px;
+    font-family: "DM Mono", monospace;
+    font-size: 10px;
+    letter-spacing: .36em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .status::before {
+    content: ""; width: 5px; height: 5px; border-radius: 50%;
+    background: currentColor; opacity: .6;
+  }
+  .status.running { color: var(--oxblood); }
+  .status.running::before { animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .15; } }
+
+  /* 버튼 */
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 32px auto 36px;
+    max-width: 300px;
+  }
+  button {
+    font-family: "DM Mono", monospace;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: .3em;
+    text-transform: uppercase;
+    padding: 15px 0 15px .3em;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background .2s ease, color .2s ease, border-color .2s ease, opacity .2s ease;
+  }
+  button:focus-visible { outline: 1px solid var(--gold); outline-offset: 3px; }
+  .btn-main {
+    background: var(--ink);
+    color: var(--ivory);
+    border: 1px solid var(--ink);
+  }
+  .btn-main:hover { background: #3a332b; }
+  .btn-main.stop { background: var(--oxblood); border-color: var(--oxblood); }
+  .btn-main.stop:hover { background: #a03a2e; }
+  .btn-sub {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid rgba(36,32,27,.35);
+  }
+  .btn-sub:hover:not(:disabled) { border-color: var(--ink); background: rgba(255,255,255,.35); }
+  .btn-sub:disabled { opacity: .3; cursor: default; }
+
+  /* 랩 기록 */
+  .ledger { text-align: left; }
+  .ledger[hidden] { display: none; }
+  .ledger-head, .lap {
+    display: grid;
+    grid-template-columns: 64px 1fr 1fr;
+    align-items: baseline;
+    padding: 11px 2px;
+  }
+  .ledger-head {
+    font-family: "DM Mono", monospace;
+    font-size: 9px;
+    letter-spacing: .3em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border-bottom: 1px solid var(--ink);
+    padding-bottom: 8px;
+  }
+  .ledger-head span:not(:first-child), .lap span:not(:first-child) { text-align: right; }
+  .laps { max-height: 230px; overflow-y: auto; }
+  .lap { border-bottom: 1px solid var(--line); }
+  .lap .no { font-style: italic; font-size: 16px; color: var(--ink-2); }
+  .lap .split, .lap .total {
+    font-family: "DM Mono", monospace;
+    font-size: 13px;
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+  }
+  .lap .total { color: var(--ink-3); }
+  .lap.best .split { color: var(--sage); }
+  .lap.worst .split { color: var(--oxblood); }
+  .lap:first-child { animation: in .35s ease; }
+  @keyframes in { from { opacity: 0; transform: translateY(-4px); } }
+
+  footer {
+    margin-top: 36px;
+    font-family: "DM Mono", monospace;
+    font-size: 10px;
+    letter-spacing: .12em;
+    color: var(--ink-3);
+  }
+  kbd {
+    font-family: inherit;
+    border-bottom: 1px solid var(--ink-3);
+    padding: 0 2px;
+    color: var(--ink-2);
+  }
+</style>
+</head>
+<body>
+  <main class="piece">
+    <header>
+      <div class="eyebrow">Maison · Est. 1926</div>
+      <h1>Chronographe</h1>
+      <div class="sub">pocket stopwatch, no. 12</div>
+    </header>
+
+    <div class="case">
+      <div class="pusher"></div>
+      <div class="face">
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          <defs>
+            <radialGradient id="sub" cx="50%" cy="45%" r="60%">
+              <stop offset="0" stop-color="#efe7d6"/>
+              <stop offset="1" stop-color="#e2d7c0"/>
+            </radialGradient>
+          </defs>
+          <!-- 기요셰 동심원 -->
+          <g id="guilloche" fill="none" stroke="#b08d57" stroke-opacity=".1" stroke-width=".35"></g>
+          <!-- 레일웨이 트랙 -->
+          <circle cx="100" cy="100" r="91" fill="none" stroke="#24201b" stroke-width=".35"/>
+          <circle cx="100" cy="100" r="86" fill="none" stroke="#24201b" stroke-width=".35"/>
+          <g id="ticks"></g>
+          <g id="numbers" font-family="Cormorant Garamond, serif" font-size="10.5" font-weight="500" fill="#24201b" text-anchor="middle"></g>
+
+          <text x="100" y="64" font-family="Cormorant Garamond, serif" font-size="7.5" letter-spacing="2.4" fill="#24201b" text-anchor="middle">CHRONOGRAPHE</text>
+          <text x="100" y="72" font-family="Cormorant Garamond, serif" font-style="italic" font-size="6" fill="#9a8f7e" text-anchor="middle">1/100 seconde</text>
+
+          <!-- 분 서브다이얼 -->
+          <circle cx="100" cy="134" r="21" fill="url(#sub)" stroke="#24201b" stroke-opacity=".35" stroke-width=".4"/>
+          <g id="minTicks"></g>
+          <g id="minNums" font-family="Cormorant Garamond, serif" font-size="5.5" fill="#5c5347" text-anchor="middle"></g>
+          <g id="minHand">
+            <path d="M100 134 L98.9 131 L100 117 L101.1 131 Z" fill="#24201b"/>
+          </g>
+          <circle cx="100" cy="134" r="1.6" fill="#24201b"/>
+
+          <!-- 초침 -->
+          <g id="secHand">
+            <line x1="100" y1="122" x2="100" y2="14" stroke="#8a2e24" stroke-width=".9" stroke-linecap="round"/>
+            <circle cx="100" cy="118" r="2.6" fill="none" stroke="#8a2e24" stroke-width=".9"/>
+            <circle cx="100" cy="100" r="3.4" fill="#8a2e24"/>
+            <circle cx="100" cy="100" r="1.1" fill="#d9c49a"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="readout" id="readout">00:00<span class="cs">.00</span></div>
+    <div class="status" id="status">ready</div>
+
+    <div class="controls">
+      <button class="btn-sub" id="lapBtn" disabled>Lap</button>
+      <button class="btn-main" id="startBtn">Start</button>
+    </div>
+
+    <section class="ledger" id="ledger" hidden>
+      <div class="ledger-head"><span>Lap</span><span>Split</span><span>Total</span></div>
+      <div class="laps" id="laps"></div>
+    </section>
+
+    <footer><kbd>Space</kbd> 시작/정지 &nbsp;·&nbsp; <kbd>L</kbd> 랩 &nbsp;·&nbsp; <kbd>R</kbd> 리셋</footer>
+  </main>
+
+<script>
+  const NS = "http://www.w3.org/2000/svg";
+
+  function el(tag, attrs, parent) {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    parent.appendChild(n);
+    return n;
+  }
+  const polar = (cx, cy, r, deg) => {
+    const a = deg * Math.PI / 180;
+    return [cx + r * Math.sin(a), cy - r * Math.cos(a)];
+  };
+
+  // 다이얼 그리기
+  (function drawDial() {
+    const g = document.getElementById("guilloche");
+    for (let r = 6; r < 84; r += 2.2) el("circle", { cx: 100, cy: 100, r }, g);
+
+    const ticks = document.getElementById("ticks");
+    const numbers = document.getElementById("numbers");
+    for (let i = 0; i < 300; i++) {
+      // 1/5초 단위 눈금
+      const deg = i * 1.2;
+      const sec = i % 5 === 0, five = i % 25 === 0;
+      const r1 = five ? 81 : sec ? 86 : 88.5;
+      const [x1, y1] = polar(100, 100, r1, deg);
+      const [x2, y2] = polar(100, 100, 91, deg);
+      el("line", {
+        x1, y1, x2, y2,
+        stroke: "#24201b",
+        "stroke-width": five ? 1.3 : sec ? .45 : .2,
+        "stroke-opacity": five ? 1 : sec ? .85 : .5
+      }, ticks);
+      if (five) {
+        const n = i / 5;
+        const [tx, ty] = polar(100, 100, 72, deg);
+        const t = el("text", { x: tx, y: ty + 3.6 }, numbers);
+        t.textContent = n === 0 ? 60 : n;
+      }
+    }
+
+    const minTicks = document.getElementById("minTicks");
+    const minNums = document.getElementById("minNums");
+    for (let i = 0; i < 30; i++) {
+      const deg = i * 12;
+      const major = i % 5 === 0;
+      const [x1, y1] = polar(100, 134, major ? 16.5 : 18.5, deg);
+      const [x2, y2] = polar(100, 134, 20.5, deg);
+      el("line", { x1, y1, x2, y2, stroke: "#24201b", "stroke-width": major ? .7 : .3, "stroke-opacity": .8 }, minTicks);
+      if (major && i % 10 === 0) {
+        const [tx, ty] = polar(100, 134, 12, deg);
+        const t = el("text", { x: tx, y: ty + 2 }, minNums);
+        t.textContent = i === 0 ? 30 : i;
+      }
+    }
+  })();
+
+  const readout = document.getElementById("readout");
+  const statusEl = document.getElementById("status");
+  const startBtn = document.getElementById("startBtn");
+  const lapBtn = document.getElementById("lapBtn");
+  const ledger = document.getElementById("ledger");
+  const lapsEl = document.getElementById("laps");
+  const secHand = document.getElementById("secHand");
+  const minHand = document.getElementById("minHand");
+
+  let running = false;
+  let startTime = 0;
+  let elapsed = 0;
+  let rafId = null;
+  let laps = [];
+
+  function fmt(ms) {
+    const totalCs = Math.floor(ms / 10);
+    const cs = totalCs % 100;
+    const s = Math.floor(totalCs / 100) % 60;
+    const m = Math.floor(totalCs / 6000);
+    const pad = n => String(n).padStart(2, "0");
+    const h = Math.floor(m / 60);
+    const mm = h ? `${h}:${pad(m % 60)}` : pad(m);
+    return { main: `${mm}:${pad(s)}`, cs: `.${pad(cs)}` };
+  }
+
+  function now() { return running ? elapsed + (performance.now() - startTime) : elapsed; }
+
+  function render() {
+    const ms = now();
+    const f = fmt(ms);
+    readout.innerHTML = `${f.main}<span class="cs">${f.cs}</span>`;
+    secHand.setAttribute("transform", `rotate(${((ms / 1000) % 60) * 6} 100 100)`);
+    minHand.setAttribute("transform", `rotate(${((ms / 60000) % 30) * 12} 100 134)`);
+    if (running) rafId = requestAnimationFrame(render);
+  }
+
+  function toggle() {
+    if (running) {
+      elapsed += performance.now() - startTime;
+      running = false;
+      cancelAnimationFrame(rafId);
+      render();
+    } else {
+      startTime = performance.now();
+      running = true;
+      render();
+    }
+    updateUI();
+  }
+
+  function lapOrReset() {
+    if (running) addLap();
+    else reset();
+  }
+
+  function addLap() {
+    const total = now();
+    const prev = laps.length ? laps[laps.length - 1].total : 0;
+    laps.push({ total, split: total - prev });
+    renderLaps();
+  }
+
+  function reset() {
+    elapsed = 0;
+    laps = [];
+    render();
+    renderLaps();
+    updateUI();
+  }
+
+  function renderLaps() {
+    let best = -1, worst = -1;
+    if (laps.length >= 2) {
+      const splits = laps.map(l => l.split);
+      best = splits.indexOf(Math.min(...splits));
+      worst = splits.indexOf(Math.max(...splits));
+    }
+    ledger.hidden = laps.length === 0;
+    lapsEl.innerHTML = laps.map((l, i) => {
+      const s = fmt(l.split), t = fmt(l.total);
+      const cls = i === best ? "best" : i === worst ? "worst" : "";
+      return `<div class="lap ${cls}"><span class="no">${String(i + 1).padStart(2, "0")}</span><span class="split">${s.main}${s.cs}</span><span class="total">${t.main}${t.cs}</span></div>`;
+    }).reverse().join("");
+  }
+
+  function updateUI() {
+    startBtn.textContent = running ? "Stop" : (elapsed > 0 ? "Resume" : "Start");
+    startBtn.classList.toggle("stop", running);
+    lapBtn.textContent = running || elapsed === 0 ? "Lap" : "Reset";
+    lapBtn.disabled = !running && elapsed === 0;
+    statusEl.textContent = running ? "running" : (elapsed > 0 ? "paused" : "ready");
+    statusEl.classList.toggle("running", running);
+  }
+
+  startBtn.addEventListener("click", toggle);
+  lapBtn.addEventListener("click", lapOrReset);
+  document.addEventListener("keydown", e => {
+    if (e.target.tagName === "BUTTON" && (e.code === "Space" || e.code === "Enter")) return;
+    if (e.code === "Space") { e.preventDefault(); toggle(); }
+    else if (e.key === "l" || e.key === "L") { if (running) addLap(); }
+    else if (e.key === "r" || e.key === "R") { if (!running) reset(); }
+  });
+
+  render();
+</script>
+</body>
+</html>
